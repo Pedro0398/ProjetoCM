@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1021101303150",
+    "project_id": "hellofarmer-805c2",
+    "storage_bucket": "hellofarmer-805c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1021101303150:android:8e4ba9da5378f59b9bcd7f",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8e9W9_bjbeUBx0YpggydUBnihKY-23cw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
