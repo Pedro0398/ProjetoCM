@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/app_router.dart';
 // Remova a importação direta de WelcomePage se o AppRouter for lidar com isso
 // import 'package:flutter_application_1/views/acesse_pages/welcome_page.dart';
 
 // Importações necessárias para o Firebase
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_application_1/views/acesse_pages/splashScreen.dart';
 import 'firebase_options.dart'; // Importe o ficheiro gerado pelo flutterfire configure
 
 void main() async {
@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
           ),
           // AQUI ESTÁ A ALTERAÇÃO PRINCIPAL:
           // O AppRouter agora é o ponto de entrada que decidirá qual página mostrar.
-          home: const AppRouter(), // Usa o AppRouter como ponto de entrada
+          home: const SplashScreen(), // Usa o AppRouter como ponto de entrada
         );
       },
     );
