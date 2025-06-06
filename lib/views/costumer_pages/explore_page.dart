@@ -5,6 +5,9 @@ import 'package:flutter_application_1/data_class/cart_service.dart';
 import 'package:flutter_application_1/data_class/firebase_offer.dart';
 import 'package:flutter_application_1/data_class/offer.dart';
 import 'package:flutter_application_1/data_class/product.dart';
+import 'package:flutter_application_1/views/costumer_pages/cart_page.dart';
+import 'package:flutter_application_1/views/widgets/navbar_widget.dart';
+
 // Importar CarrinhoService
 
 class ExplorePage extends StatefulWidget {
@@ -565,6 +568,7 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
           ],
         ),
       ),
+      //bottomNavigationBar: const NavBar(),
     );
   }
 }

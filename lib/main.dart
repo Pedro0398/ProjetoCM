@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/app_router.dart';
+import 'package:flutter_application_1/data/notifiers.dart';
 // Remova a importação direta de WelcomePage se o AppRouter for lidar com isso
 // import 'package:flutter_application_1/views/acesse_pages/welcome_page.dart';
 
@@ -29,23 +30,20 @@ class _MyAppState extends State<MyApp> {
       // Especificar o tipo para o ValueListenableBuilder
       valueListenable: darkModeNotifier,
       builder: (context, isDarkMode, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              brightness: isDarkMode ? Brightness.dark : Brightness.light,
-            ),
-            // Pode adicionar mais configurações de tema aqui se necessário
-          ),
-          // AQUI ESTÁ A ALTERAÇÃO PRINCIPAL:
-          // O AppRouter agora é o ponto de entrada que decidirá qual página mostrar.
-          home: const AppRouter(), // Usa o AppRouter como ponto de entrada
-        );
+       return MaterialApp(
+  debugShowCheckedModeBanner: false,
+  theme: ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.light),
+    useMaterial3: true,
+  ),
+  darkTheme: ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.dark),
+    useMaterial3: true,
+  ),
+  themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+  home: const AppRouter(),
+);
       },
     );
   }
 }
-
-// Correção: declaração com tipo bool
-ValueNotifier<bool> darkModeNotifier = ValueNotifier<bool>(false);

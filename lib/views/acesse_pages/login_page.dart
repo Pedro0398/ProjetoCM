@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Para FirebaseAuthException
 import 'package:flutter_application_1/app_router.dart';
 import 'package:flutter_application_1/data_class/auth_service.dart';
+import 'package:flutter_application_1/views/acesse_pages/signup_page.dart'; 
+
 
 // Assumindo que estes são os seus widgets e serviços.
 // Certifique-se que os caminhos estão corretos.
@@ -235,12 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                       _isLoading
                           ? null
                           : () {
-                            // Ex: Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignupPage()));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Ir para Registo (implementar)"),
-                              ),
-                            );
+                           Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignupPage()));
                           },
                   child: Text(
                     'Não tem uma conta? Crie uma aqui!',
