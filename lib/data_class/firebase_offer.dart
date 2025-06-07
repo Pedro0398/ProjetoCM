@@ -1,20 +1,142 @@
-// ficheiro: services/oferta_produto_service.dart (ou o caminho que usa para os seus serviços)
+// ficheiro: services/oferta_produto_service.dart - VERSÃO CORRIGIDA
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Ajuste os caminhos de importação para as suas classes de dados
-import 'package:flutter_application_1/data_class/offer.dart'; // Sua classe OfertaProduto
-import 'package:flutter_application_1/data_class/product.dart'; // Sua classe Produto (contém TipoProdutoAgricola e tipoProdutoAgricolaParaString)
+import 'package:flutter_application_1/data_class/offer.dart';
+import 'package:flutter_application_1/data_class/product.dart';
 
 class OfertaProdutoService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collectionName =
-      'ofertasProduto'; // Nome da sua coleção no Firestore
+  final String _collectionName = 'ofertasProduto';
+
+  // Método CORRIGIDO para obter ofertas por categoria
+  Stream<List<OfertaProduto>> obterOfertasPorCategoria(
+    TipoProdutoAgricola categoria,
+  ) {
+    String categoriaString = tipoProdutoAgricolaParaString(categoria);
+    
+    // OPÇÃO 1: Query simplificada sem múltiplos where + orderBy
+    return _firestore
+        .collection(_collectionName)
+        .where('estadoAnuncio', isEqualTo: 'Disponível')
+        .where('tipoProdutoAnuncio', isEqualTo: categoriaString)
+        // Removemos o orderBy para evitar a necessidade de índice composto
+        .snapshots()
+        .map((snapshot) {
+          List<OfertaProduto> ofertas = snapshot.docs.map((doc) {
+            return OfertaProduto.fromFirestore(
+              doc as DocumentSnapshot<Map<String, dynamic>>,
+            );
+          }).toList();
+          
+          // Ordenação no lado do cliente
+          ofertas.sort((a, b) => b.dataCriacaoAnuncio.compareTo(a.dataCriacaoAnuncio));
+          
+          return ofertas;
+        });
+  }
+
+  // ALTERNATIVA: Método usando a abordagem original com produtos
+  Stream<List<OfertaProduto>> obterOfertasPorCategoriaAlternativa(
+    TipoProdutoAgricola categoria,
+  ) {
+    String categoriaString = tipoProdutoAgricolaParaString(categoria);
+    
+    return _firestore
+        .collection('produtos')
+        .where('tipoProduto', isEqualTo: categoriaString)
+        .snapshots()
+        .asyncMap((produtosSnapshot) async {
+      
+      List<String> idsProdutos = produtosSnapshot.docs
+          .map((doc) => doc.id)
+          .toList();
+      
+      if (idsProdutos.isEmpty) {
+        return <OfertaProduto>[];
+      }
+      
+      // Firestore tem limite de 10 items no whereIn
+      List<String> idsLimitados = idsProdutos.take(10).toList();
+      
+      // Query simplificada sem orderBy para evitar necessidade de índice
+      QuerySnapshot ofertasSnapshot = await _firestore
+          .collection(_collectionName)
+          .where('estadoAnuncio', isEqualTo: 'Disponível')
+          .where('idProdutoGenerico', whereIn: idsLimitados)
+          .get();
+      
+      List<OfertaProduto> ofertas = ofertasSnapshot.docs.map((doc) {
+        return OfertaProduto.fromFirestore(
+          doc as DocumentSnapshot<Map<String, dynamic>>,
+        );
+      }).toList();
+      
+      // Ordenação no lado do cliente
+      ofertas.sort((a, b) => b.dataCriacaoAnuncio.compareTo(a.dataCriacaoAnuncio));
+      
+      return ofertas;
+    });
+  }
+
+  // Método otimizado para obter todas as ofertas disponíveis
+  Stream<List<OfertaProduto>> getTodasOfertasDisponiveisStream({
+    String? termoPesquisa,
+  }) {
+    // Query simples apenas com estado
+    Query query = _firestore
+        .collection(_collectionName)
+        .where('estadoAnuncio', isEqualTo: 'Disponível');
+
+    return query.snapshots().map((snapshot) {
+      List<OfertaProduto> ofertas = snapshot.docs.map((doc) {
+        return OfertaProduto.fromFirestore(
+          doc as DocumentSnapshot<Map<String, dynamic>>,
+        );
+      }).toList();
+
+      // Ordenação por data no lado do cliente
+      ofertas.sort((a, b) => b.dataCriacaoAnuncio.compareTo(a.dataCriacaoAnuncio));
+
+      // Filtragem por texto no lado do cliente
+      if (termoPesquisa != null && termoPesquisa.isNotEmpty) {
+        String lowerTermo = termoPesquisa.toLowerCase().trim();
+        if (lowerTermo.isNotEmpty) {
+          ofertas = ofertas.where((oferta) {
+            return oferta.tituloAnuncio.toLowerCase().contains(lowerTermo) ||
+                oferta.descricaoAnuncio.toLowerCase().contains(lowerTermo) ||
+                (oferta.tipoProdutoAnuncio?.toLowerCase().contains(lowerTermo) ?? false);
+          }).toList();
+        }
+      }
+      
+      return ofertas;
+    });
+  }
+
+  // Obter ofertas do vendedor (método simplificado)
+  Stream<List<OfertaProduto>> obterOfertasDoVendedor(String idVendedor) {
+    return _firestore
+        .collection(_collectionName)
+        .where('idVendedor', isEqualTo: idVendedor)
+        .where('estadoAnuncio', isEqualTo: 'Disponível')
+        .snapshots()
+        .map((snapshot) {
+          List<OfertaProduto> ofertas = snapshot.docs.map((doc) {
+            return OfertaProduto.fromFirestore(
+              doc as DocumentSnapshot<Map<String, dynamic>>,
+            );
+          }).toList();
+          
+          // Ordenação no cliente
+          ofertas.sort((a, b) => b.dataCriacaoAnuncio.compareTo(a.dataCriacaoAnuncio));
+          
+          return ofertas;
+        });
+  }
 
   // Adicionar uma nova oferta
   Future<DocumentReference> adicionarOferta(OfertaProduto oferta) async {
     try {
-      // Garante que o estado é 'Disponível' se não foi explicitamente definido
-      // (O construtor da OfertaProduto já faz isto se tiver valor por defeito)
       if (oferta.estadoAnuncio.isEmpty) {
         oferta.estadoAnuncio = 'Disponível';
       }
@@ -26,72 +148,60 @@ class OfertaProdutoService {
     }
   }
 
-  // Obter um stream das ofertas DISPONÍVEIS de um vendedor específico
-  Stream<List<OfertaProduto>> obterOfertasDoVendedor(String idVendedor) {
-    return _firestore
-        .collection(_collectionName)
-        .where('idVendedor', isEqualTo: idVendedor)
-        .where('estadoAnuncio', isEqualTo: 'Disponível')
-        .orderBy('dataCriacaoAnuncio', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return OfertaProduto.fromFirestore(
-              doc as DocumentSnapshot<Map<String, dynamic>>,
-            );
-          }).toList();
-        });
-  }
+  // Obter contagem de ofertas por categoria (simplificado)
+  Future<Map<TipoProdutoAgricola, int>> obterContagemOfertasPorCategoria() async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collectionName)
+          .where('estadoAnuncio', isEqualTo: 'Disponível')
+          .get();
 
-  // NOVO MÉTODO: Obter um stream de TODAS as ofertas disponíveis (para a ExplorarOfertasPage)
-  Stream<List<OfertaProduto>> getTodasOfertasDisponiveisStream({
-    String? termoPesquisa,
-    // Os filtros mais complexos (tipo, preço) serão aplicados no lado do cliente
-    // na ExplorarOfertasPage para simplificar as queries ao Firestore e a gestão de índices.
-  }) {
-    Query query = _firestore
-        .collection(_collectionName)
-        .where('estadoAnuncio', isEqualTo: 'Disponível')
-        .orderBy(
-          'dataCriacaoAnuncio',
-          descending: true,
-        ); // Mais recentes primeiro
+      Map<TipoProdutoAgricola, int> contagem = {};
+      
+      // Inicializar todas as categorias com 0
+      for (TipoProdutoAgricola tipo in TipoProdutoAgricola.values) {
+        contagem[tipo] = 0;
+      }
 
-    return query.snapshots().map((snapshot) {
-      List<OfertaProduto> ofertas =
-          snapshot.docs.map((doc) {
-            return OfertaProduto.fromFirestore(
-              doc as DocumentSnapshot<Map<String, dynamic>>,
-            );
-          }).toList();
-
-      // Filtragem por texto no lado do cliente (para simplificar)
-      // Isto é feito depois de receber os dados do Firebase.
-      // Para grandes volumes de dados, uma solução de pesquisa no servidor seria melhor.
-      if (termoPesquisa != null && termoPesquisa.isNotEmpty) {
-        String lowerTermo = termoPesquisa.toLowerCase().trim();
-        if (lowerTermo.isNotEmpty) {
-          // Garante que não filtra com string vazia após trim
-          ofertas =
-              ofertas.where((oferta) {
-                return oferta.tituloAnuncio.toLowerCase().contains(
-                      lowerTermo,
-                    ) ||
-                    oferta.descricaoAnuncio.toLowerCase().contains(
-                      lowerTermo,
-                    ) ||
-                    (oferta.tipoProdutoAnuncio?.toLowerCase().contains(
-                          lowerTermo,
-                        ) ??
-                        false) ||
-                    // Poderia adicionar mais campos à pesquisa aqui, se relevante
-                    // Ex: oferta.idProdutoGenerico.toLowerCase().contains(lowerTermo)
-                    false;
-              }).toList();
+      // Contar ofertas por categoria
+      for (QueryDocumentSnapshot doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        String? tipoProdutoString = data['tipoProdutoAnuncio'] as String?;
+        
+        if (tipoProdutoString != null) {
+          try {
+            TipoProdutoAgricola tipo = stringParaTipoProdutoAgricola(tipoProdutoString);
+            contagem[tipo] = (contagem[tipo] ?? 0) + 1;
+          } catch (e) {
+            // Ignora tipos inválidos
+            print('Tipo de produto inválido encontrado: $tipoProdutoString');
+          }
         }
       }
-      return ofertas;
-    });
+
+      return contagem;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Obter categorias mais populares
+  Future<List<TipoProdutoAgricola>> obterCategoriasMaisPopulares({int limite = 5}) async {
+    try {
+      Map<TipoProdutoAgricola, int> contagem = await obterContagemOfertasPorCategoria();
+      
+      List<MapEntry<TipoProdutoAgricola, int>> listaOrdenada = 
+          contagem.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+
+      return listaOrdenada
+          .where((entry) => entry.value > 0)
+          .take(limite)
+          .map((entry) => entry.key)
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // Atualizar uma oferta existente
@@ -115,7 +225,7 @@ class OfertaProdutoService {
     }
   }
 
-  // Método para marcar uma oferta como vendida (chamado do lado do comprador/pagamento)
+  // Marcar oferta como vendida
   Future<void> marcarOfertaComoVendida(
     String ofertaId,
     String compradorId,
@@ -123,83 +233,69 @@ class OfertaProdutoService {
     int quantidadeComprada,
   ) async {
     try {
-      // Numa transação, idealmente verificaria se a quantidade ainda está disponível
-      // e atualizaria o stock do produto base. Aqui, apenas atualizamos a oferta.
       await _firestore.collection(_collectionName).doc(ofertaId).update({
         'estadoAnuncio': 'Vendido',
         'idComprador': compradorId,
         'dataTransacaoFinalizada': Timestamp.now(),
         'precoFinalTransacao': precoFinal,
         'quantidadeTransacionada': quantidadeComprada,
-        // Poderia reduzir 'quantidadeDisponivelNestaOferta' se fosse venda parcial,
-        // mas a sua classe OfertaProduto não suporta isso diretamente na lógica 'marcarComoVendido'.
-        // Se a oferta é para 1 unidade, quantidadeDisponivelNestaOferta poderia ir para 0.
       });
     } catch (e) {
       rethrow;
     }
   }
 
-  // Criar ofertas de teste manuais (atualizado para incluir tipoProdutoAnuncio)
+  // Criar ofertas de teste
   Future<void> criarOfertasDeTesteManual(
     String idVendedorTeste,
     String idProdutoGenericoTeste1,
     String idProdutoGenericoTeste2,
   ) async {
-    // Assumindo que TipoProdutoAgricola e tipoProdutoAgricolaParaString estão acessíveis
-    // via import de 'product.dart' ou similar.
     OfertaProduto oferta1 = OfertaProduto(
       id: '',
-      idProdutoGenerico: idProdutoGenericoTeste1, // ID de um Produto existente
+      idProdutoGenerico: idProdutoGenericoTeste1,
       tituloAnuncio: 'Laranjas do Algarve Fresquinhas!',
-      descricaoAnuncio:
-          'Caixa de 5kg de laranjas sumarentas, acabadas de colher.',
+      descricaoAnuncio: 'Caixa de 5kg de laranjas sumarentas, acabadas de colher.',
       idVendedor: idVendedorTeste,
       precoSugerido: 12.50,
-      quantidadeDisponivelNestaOferta: 10, // Quantidade de caixas disponíveis
+      quantidadeDisponivelNestaOferta: 10,
       dataCriacaoAnuncio: DateTime.now().subtract(const Duration(hours: 5)),
       estadoAnuncio: 'Disponível',
-      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(
-        TipoProdutoAgricola.fruta,
-      ),
+      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(TipoProdutoAgricola.fruta),
     );
 
     OfertaProduto oferta2 = OfertaProduto(
       id: '',
-      idProdutoGenerico:
-          idProdutoGenericoTeste2, // ID de outro Produto existente
+      idProdutoGenerico: idProdutoGenericoTeste2,
       tituloAnuncio: 'Queijo de Cabra Curado Artesanal',
       descricaoAnuncio: 'Queijo intenso e saboroso, produção limitada.',
       idVendedor: idVendedorTeste,
       precoSugerido: 8.75,
-      quantidadeDisponivelNestaOferta: 5, // Quantidade de queijos disponíveis
+      quantidadeDisponivelNestaOferta: 5,
       dataCriacaoAnuncio: DateTime.now().subtract(const Duration(days: 1)),
       estadoAnuncio: 'Disponível',
-      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(
-        TipoProdutoAgricola.laticinio,
-      ),
+      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(TipoProdutoAgricola.laticinio),
     );
+
     OfertaProduto oferta3 = OfertaProduto(
       id: '',
-      idProdutoGenerico: "ID_ALFACE_TESTE", // ID de um Produto do tipo vegetal
+      idProdutoGenerico: "ID_ALFACE_TESTE",
       tituloAnuncio: 'Alfaces Frescas da Horta',
-      descricaoAnuncio:
-          'Alfaces biológicas, crocantes e deliciosas. Molho de 3 unidades.',
+      descricaoAnuncio: 'Alfaces biológicas, crocantes e deliciosas. Molho de 3 unidades.',
       idVendedor: idVendedorTeste,
       precoSugerido: 1.80,
       quantidadeDisponivelNestaOferta: 20,
       dataCriacaoAnuncio: DateTime.now().subtract(const Duration(hours: 2)),
       estadoAnuncio: 'Disponível',
-      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(
-        TipoProdutoAgricola.vegetal,
-      ),
+      tipoProdutoAnuncio: tipoProdutoAgricolaParaString(TipoProdutoAgricola.vegetal),
     );
 
     try {
       await adicionarOferta(oferta1);
       await adicionarOferta(oferta2);
       await adicionarOferta(oferta3);
-      // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+      print('Erro ao criar ofertas de teste: $e');
+    }
   }
 }

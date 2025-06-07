@@ -122,7 +122,7 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                         ) {
                           return DropdownMenuItem<TipoProdutoAgricola>(
                             value: tipo,
-                            child: Text(tipoProdutoAgricolaParaString(tipo)),
+                            child: Text(tipoProdutoAgricolaParaStringForUser(tipo)),
                           );
                         }),
                       ],

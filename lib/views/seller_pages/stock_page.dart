@@ -141,7 +141,7 @@ class _StockPageState extends State<StockPage> {
                               return DropdownMenuItem<TipoProdutoAgricola>(
                                 value: tipo,
                                 child: Text(
-                                  tipoProdutoAgricolaParaString(tipo),
+                                  tipoProdutoAgricolaParaStringForUser(tipo),
                                 ),
                               );
                             }).toList(),
@@ -575,7 +575,7 @@ class _StockPageState extends State<StockPage> {
                         children: [
                           // Exibir o tipo de produto
                           Text(
-                            'Tipo: ${tipoProdutoAgricolaParaString(produto.tipoProduto)}',
+                            'Tipo: ${tipoProdutoAgricolaParaStringForUser(produto.tipoProduto)}',
                             style: TextStyle(
                               fontSize: 13,
                               fontStyle: FontStyle.italic,

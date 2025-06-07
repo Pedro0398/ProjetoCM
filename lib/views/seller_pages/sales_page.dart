@@ -796,7 +796,7 @@ class _SalesPageState extends State<SalesPage> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 2.0),
                                 child: Text(
-                                  'Tipo: ${oferta.tipoProdutoAnuncio}',
+                                  'Tipo: ${stringForUser(oferta.tipoProdutoAnuncio)}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontStyle: FontStyle.italic,

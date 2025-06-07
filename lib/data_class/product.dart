@@ -26,6 +26,48 @@ String tipoProdutoAgricolaParaString(TipoProdutoAgricola tipo) {
   /* ... (como antes) ... */
   switch (tipo) {
     case TipoProdutoAgricola.fruta:
+      return 'fruta';
+    case TipoProdutoAgricola.vegetal:
+      return 'vegetal';
+    case TipoProdutoAgricola.legume:
+      return 'legume';
+    case TipoProdutoAgricola.laticinio:
+      return 'laticinio';
+    case TipoProdutoAgricola.ovo:
+      return 'ovo';
+    case TipoProdutoAgricola.cereal:
+      return 'cereal';
+    case TipoProdutoAgricola.leguminosa:
+      return 'leguminosa';
+    case TipoProdutoAgricola.carne:
+      return 'carne';
+    case TipoProdutoAgricola.peixeDeAguaDoce:
+      return 'peixeDeAguaDoce';
+    case TipoProdutoAgricola.azeite:
+      return 'azeite';
+    case TipoProdutoAgricola.vinho:
+      return 'vinho';
+    case TipoProdutoAgricola.mel:
+      return 'mel';
+    case TipoProdutoAgricola.ervaAromatica:
+      return 'ervaAromatica';
+    case TipoProdutoAgricola.cogumelo:
+      return 'cogumelo';
+    case TipoProdutoAgricola.frutoSeco:
+      return 'frutoSeco';
+    case TipoProdutoAgricola.transformado:
+      return 'transformado';
+    case TipoProdutoAgricola.plantaOrnamental:
+      return 'plantaOrnamental';
+    case TipoProdutoAgricola.outro:
+      return 'outro';
+  }
+}
+
+String tipoProdutoAgricolaParaStringForUser(TipoProdutoAgricola tipo) {
+  /* ... (como antes) ... */
+  switch (tipo) {
+    case TipoProdutoAgricola.fruta:
       return 'Fruta';
     case TipoProdutoAgricola.vegetal:
       return 'Vegetal';
@@ -42,13 +84,13 @@ String tipoProdutoAgricolaParaString(TipoProdutoAgricola tipo) {
     case TipoProdutoAgricola.carne:
       return 'Carne';
     case TipoProdutoAgricola.peixeDeAguaDoce:
-      return 'Peixe de Água Doce';
+      return 'Peixe De Água Doce';
     case TipoProdutoAgricola.azeite:
       return 'Azeite';
     case TipoProdutoAgricola.vinho:
       return 'Vinho';
     case TipoProdutoAgricola.mel:
-      return 'Mel e Derivados';
+      return 'Mel';
     case TipoProdutoAgricola.ervaAromatica:
       return 'Erva Aromática';
     case TipoProdutoAgricola.cogumelo:
@@ -64,21 +106,100 @@ String tipoProdutoAgricolaParaString(TipoProdutoAgricola tipo) {
   }
 }
 
-TipoProdutoAgricola stringParaTipoProdutoAgricola(
-  String? nomeDoTipoNoFirestore,
-) {
-  /* ... (como antes) ... */
-  if (nomeDoTipoNoFirestore == null) return TipoProdutoAgricola.outro;
-  for (TipoProdutoAgricola tipo in TipoProdutoAgricola.values) {
-    if (tipo.name == nomeDoTipoNoFirestore) return tipo;
+TipoProdutoAgricola stringParaTipoProdutoAgricola(String? valor) {
+  if (valor == null || valor.isEmpty) {
+    return TipoProdutoAgricola.vinho; // ou outro valor padrão apropriado
   }
-  for (TipoProdutoAgricola tipo in TipoProdutoAgricola.values) {
-    if (tipoProdutoAgricolaParaString(tipo).toLowerCase() ==
-        nomeDoTipoNoFirestore.toLowerCase()) {
-      return tipo;
-    }
+
+  switch (valor.toLowerCase()) {
+    case 'fruta':
+      return TipoProdutoAgricola.fruta;
+    case 'vegetal':
+      return TipoProdutoAgricola.vegetal;
+    case 'legume':
+      return TipoProdutoAgricola.legume;
+    case 'laticinio':
+      return TipoProdutoAgricola.laticinio;
+    case 'ovo':
+      return TipoProdutoAgricola.ovo;
+    case 'cereal':
+      return TipoProdutoAgricola.cereal;
+    case 'leguminosa':
+      return TipoProdutoAgricola.leguminosa;
+    case 'carne':
+      return TipoProdutoAgricola.carne;
+    case 'peixedeaguadoce':
+      return TipoProdutoAgricola.peixeDeAguaDoce;
+    case 'azeite':
+      return TipoProdutoAgricola.azeite;
+    case 'vinho':
+      return TipoProdutoAgricola.vinho;
+    case 'mel':
+      return TipoProdutoAgricola.mel;
+    case 'ervaaromatica':
+      return TipoProdutoAgricola.ervaAromatica;
+    case 'cogumelo':
+      return TipoProdutoAgricola.cogumelo;
+    case 'frutoseco':
+      return TipoProdutoAgricola.frutoSeco;
+    case 'transformado':
+      return TipoProdutoAgricola.transformado;
+    case 'plantaornamental':
+      return TipoProdutoAgricola.plantaOrnamental;
+    case 'outro':
+      return TipoProdutoAgricola.outro;
+    default:
+      print('Tipo de produto desconhecido: $valor, usando padrão');
+      return TipoProdutoAgricola.vinho; // Valor padrão
   }
-  return TipoProdutoAgricola.outro;
+}
+
+String stringForUser(String? valor) {
+  if (valor == null || valor.isEmpty) {
+    return "Vinho"; // ou outro valor padrão apropriado
+  }
+
+  switch (valor.toLowerCase()) {
+    case 'fruta':
+      return "Fruta";
+    case 'vegetal':
+      return "Vegetal";
+    case 'legume':
+      return "Leguma";
+    case 'laticinio':
+      return "Laticínio";
+    case 'ovo':
+      return "Ovo";
+    case 'cereal':
+      return "Cereal";
+    case 'leguminosa':
+      return "Leguminosa";
+    case 'carne':
+      return "Carne";
+    case 'peixedeaguadoce':
+      return "Peixe De Água Doce";
+    case 'azeite':
+      return "Azeite";
+    case 'vinho':
+      return "Vinho";
+    case 'mel':
+      return "Mel";
+    case 'ervaaromatica':
+      return "Erva Aromática";
+    case 'cogumelo':
+      return "Cogumelo";
+    case 'frutoseco':
+      return "Fruto Seco";
+    case 'transformado':
+      return "Transformado";
+    case 'plantaornamental':
+      return "Planta Ornamental";
+    case 'outro':
+      return "Outro";
+    default:
+      print('Tipo de produto desconhecido: $valor, usando padrão');
+      return "Vinho"; // Valor padrão
+  }
 }
 
 class Produto {
@@ -118,6 +239,7 @@ class Produto {
   }
 
   Map<String, dynamic> toFirestore() {
+    //print(tipoProduto.name);
     return {
       'nome': nome,
       'descricao': descricao,
