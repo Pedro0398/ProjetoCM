@@ -141,4 +141,22 @@ class AuthService {
       rethrow; // Re-lança para a UI tratar (ex: mostrar mensagem de saldo insuficiente)
     }
   }
+
+  Future<void> atualizarNome({
+  required String uid,
+  required String novoNome,
+  }) async {
+  try {
+    // Atualiza no Firestore
+    await _firestore.collection('utilizadores').doc(uid).update({
+      'nome': novoNome,
+    });
+
+    // Atualiza no Firebase Auth (ex: displayName)
+    await _firebaseAuth.currentUser?.updateDisplayName(novoNome);
+  } catch (e) {
+    rethrow;
+  }
+}
+
 }
