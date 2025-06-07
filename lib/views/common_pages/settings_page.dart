@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/views/costumer_pages/cart_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -15,10 +16,15 @@ class SettingsPage extends StatelessWidget {
         elevation: 1,
         centerTitle: true,
         foregroundColor: theme.textTheme.bodyLarge?.color,
-        actions: const [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Icon(Icons.shopping_cart_outlined),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              );
+            },
           ),
         ],
       ),
