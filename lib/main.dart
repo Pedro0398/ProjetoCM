@@ -30,7 +30,7 @@ class _MyAppState extends State<MyApp> {
       // Especificar o tipo para o ValueListenableBuilder
       valueListenable: darkModeNotifier,
       builder: (context, isDarkMode, child) {
-       return MaterialApp(
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.light),
