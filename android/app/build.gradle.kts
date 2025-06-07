@@ -45,3 +45,7 @@ android {
 flutter {
     source = "../.."
 }
+
+
+
+// ndkVersion "29.0.13113456"
