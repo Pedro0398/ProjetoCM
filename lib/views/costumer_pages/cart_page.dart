@@ -5,6 +5,10 @@ import 'package:flutter_application_1/data_class/auth_service.dart';
 import 'package:flutter_application_1/data_class/cart_service.dart';
 import 'package:flutter_application_1/data_class/firebase_offer.dart';
 import 'package:flutter_application_1/data_class/item_cart.dart';
+import 'package:flutter_application_1/views/costumer_pages/explore_page.dart'; 
+import 'package:flutter_application_1/data/notifiers.dart';
+
+
 // Ajuste os caminhos
 import 'package:flutter_application_1/data_class/user.dart' as app_user;
 
@@ -320,13 +324,9 @@ class _CartPageState extends State<CartPage> {
                     icon: Icon(Icons.explore_outlined),
                     label: const Text('Explorar Ofertas'),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Navegar para Explorar Ofertas (Implementar)",
-                          ),
-                        ),
-                      );
+                      {
+                        selectedPageNotifier.value = 1;
+                      }
                     },
                   ),
                 ],

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Importe o Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ... (o seu main() e MyApp como no Passo 2) ...
 

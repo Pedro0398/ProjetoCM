@@ -53,7 +53,7 @@ class WelcomePage extends StatelessWidget {
               SizedBox(height: 20),
               FilledButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => SignupPage()),
                   );
