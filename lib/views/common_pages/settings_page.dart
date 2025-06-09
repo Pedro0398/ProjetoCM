@@ -3,6 +3,7 @@ import 'package:flutter_application_1/data_class/auth_service.dart';
 import 'package:flutter_application_1/views/common_pages/profile_page.dart';
 import 'package:flutter_application_1/views/costumer_pages/cart_page.dart';
 import 'package:flutter_application_1/data_class/user.dart' as app_user;
+import 'package:flutter_application_1/views/common_pages/reclamacoes_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -116,6 +117,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   {'title': 'Idioma e Região', 'icon': Icons.language},
                   {'title': 'Ajuda e Suporte', 'icon': Icons.help_outline},
                   {'title': 'Sobre Nós', 'icon': Icons.info_outline},
+                  {
+                    'title': 'Reclamações',
+                    'icon': Icons.report_problem_outlined,
+                    'onTap': () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ReclamacoesPage(),
+                        ),
+                      );
+                    }
+                  },
                 ].map((item) {
                   return ListTile(
                     leading: Icon(item['icon'] as IconData),
