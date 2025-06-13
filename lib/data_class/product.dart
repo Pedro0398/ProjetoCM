@@ -1,5 +1,4 @@
 // ficheiro: lib/data_class/product.dart
-// O enum TipoProdutoAgricola e funções utilitárias devem estar aqui ou importados
 
 enum TipoProdutoAgricola {
   fruta,
@@ -23,7 +22,6 @@ enum TipoProdutoAgricola {
 }
 
 String tipoProdutoAgricolaParaString(TipoProdutoAgricola tipo) {
-  /* ... (como antes) ... */
   switch (tipo) {
     case TipoProdutoAgricola.fruta:
       return 'fruta';
@@ -65,7 +63,6 @@ String tipoProdutoAgricolaParaString(TipoProdutoAgricola tipo) {
 }
 
 String tipoProdutoAgricolaParaStringForUser(TipoProdutoAgricola tipo) {
-  /* ... (como antes) ... */
   switch (tipo) {
     case TipoProdutoAgricola.fruta:
       return 'Fruta';
@@ -108,52 +105,21 @@ String tipoProdutoAgricolaParaStringForUser(TipoProdutoAgricola tipo) {
 
 TipoProdutoAgricola stringParaTipoProdutoAgricola(String? valor) {
   if (valor == null || valor.isEmpty) {
-    return TipoProdutoAgricola.vinho; // ou outro valor padrão apropriado
+    // Retornar um valor padrão mais genérico
+    return TipoProdutoAgricola.outro;
   }
 
-  switch (valor.toLowerCase()) {
-    case 'fruta':
-      return TipoProdutoAgricola.fruta;
-    case 'vegetal':
-      return TipoProdutoAgricola.vegetal;
-    case 'legume':
-      return TipoProdutoAgricola.legume;
-    case 'laticinio':
-      return TipoProdutoAgricola.laticinio;
-    case 'ovo':
-      return TipoProdutoAgricola.ovo;
-    case 'cereal':
-      return TipoProdutoAgricola.cereal;
-    case 'leguminosa':
-      return TipoProdutoAgricola.leguminosa;
-    case 'carne':
-      return TipoProdutoAgricola.carne;
-    case 'peixedeaguadoce':
-      return TipoProdutoAgricola.peixeDeAguaDoce;
-    case 'azeite':
-      return TipoProdutoAgricola.azeite;
-    case 'vinho':
-      return TipoProdutoAgricola.vinho;
-    case 'mel':
-      return TipoProdutoAgricola.mel;
-    case 'ervaaromatica':
-      return TipoProdutoAgricola.ervaAromatica;
-    case 'cogumelo':
-      return TipoProdutoAgricola.cogumelo;
-    case 'frutoseco':
-      return TipoProdutoAgricola.frutoSeco;
-    case 'transformado':
-      return TipoProdutoAgricola.transformado;
-    case 'plantaornamental':
-      return TipoProdutoAgricola.plantaOrnamental;
-    case 'outro':
+  // Usar um método mais robusto que não falha se um valor for adicionado ao enum
+  return TipoProdutoAgricola.values.firstWhere(
+    (e) => e.name.toLowerCase() == valor.toLowerCase(),
+    orElse: () {
+      print('Tipo de produto desconhecido: $valor, usando padrão "outro"');
       return TipoProdutoAgricola.outro;
-    default:
-      print('Tipo de produto desconhecido: $valor, usando padrão');
-      return TipoProdutoAgricola.vinho; // Valor padrão
-  }
+    },
+  );
 }
 
+// ****** FUNÇÃO RESTAURADA ******
 String stringForUser(String? valor) {
   if (valor == null || valor.isEmpty) {
     return "Vinho"; // ou outro valor padrão apropriado
@@ -165,7 +131,7 @@ String stringForUser(String? valor) {
     case 'vegetal':
       return "Vegetal";
     case 'legume':
-      return "Leguma";
+      return "Leguma"; // Nota: "Legume" e não "Leguma"
     case 'laticinio':
       return "Laticínio";
     case 'ovo':
@@ -210,7 +176,7 @@ class Produto {
   final String idVendedor;
   int quantidadeEmStock;
   final TipoProdutoAgricola tipoProduto;
-  String? imageUrl; // NOVO CAMPO para a URL da imagem
+  final String? imageUrl;
 
   Produto({
     required this.id,
@@ -220,7 +186,7 @@ class Produto {
     required this.idVendedor,
     this.quantidadeEmStock = 0,
     required this.tipoProduto,
-    this.imageUrl, // Adicionado ao construtor (opcional)
+    this.imageUrl,
   });
 
   factory Produto.fromFirestore(Map<String, dynamic> data, String documentId) {
@@ -234,12 +200,11 @@ class Produto {
       tipoProduto: stringParaTipoProdutoAgricola(
         data['tipoProduto'] as String?,
       ),
-      imageUrl: data['imageUrl'] as String?, // Ler imageUrl
+      imageUrl: data['imageUrl'] as String?,
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    //print(tipoProduto.name);
     return {
       'nome': nome,
       'descricao': descricao,
@@ -247,7 +212,7 @@ class Produto {
       'idVendedor': idVendedor,
       'quantidadeEmStock': quantidadeEmStock,
       'tipoProduto': tipoProduto.name,
-      if (imageUrl != null) 'imageUrl': imageUrl, // Guardar imageUrl se existir
+      if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 }

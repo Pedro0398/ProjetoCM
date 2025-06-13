@@ -1,12 +1,15 @@
+// ficheiro: lib/stock_page.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/data_class/auth_service.dart';
 import 'package:flutter_application_1/data_class/firebase_product.dart';
+import 'package:flutter_application_1/data_class/product.dart';
+import 'package:flutter_application_1/data_class/storage_service.dart';
+import 'package:image_picker/image_picker.dart';
 
-// Ajuste os caminhos de importação
-import 'package:flutter_application_1/data_class/product.dart'; // Já inclui o enum TipoProdutoAgricola
+// Importe os novos serviços
 
-// O enum MenuAcaoStock já deve estar aqui ou importado se o moveu
 enum MenuAcaoStock { editar, apagar }
 
 class StockPage extends StatefulWidget {
@@ -18,6 +21,7 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   final ProdutoService _produtoService = ProdutoService();
+  final StorageService _storageService = StorageService();
   final AuthService _authService = AuthService();
   User? _currentUser;
   String? _currentVendedorId;
@@ -26,8 +30,10 @@ class _StockPageState extends State<StockPage> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _descricaoController = TextEditingController();
   final TextEditingController _quantidadeController = TextEditingController();
-  // Variável de estado para o tipo de produto selecionado no diálogo
   TipoProdutoAgricola? _tipoProdutoSelecionadoDialogo;
+
+  File? _imagemSelecionada;
+  String? _urlImagemExistente;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -37,28 +43,96 @@ class _StockPageState extends State<StockPage> {
     _carregarDadosUtilizador();
   }
 
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _descricaoController.dispose();
+    _quantidadeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _carregarDadosUtilizador() async {
     if (mounted) setState(() => _isLoadingPageData = true);
     _currentUser = _authService.currentUser;
     if (_currentUser != null) {
       _currentVendedorId = _currentUser!.uid;
-    } else {}
+    } else {
+      // Lógica de utilizador não encontrado, se necessário
+    }
     if (mounted) setState(() => _isLoadingPageData = false);
   }
 
+  Future<void> _escolherImagem(
+    ImageSource source,
+    Function(File) onImageSelected,
+  ) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? imagem = await picker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+
+    if (imagem != null) {
+      onImageSelected(File(imagem.path));
+    }
+  }
+
+  void _mostrarOpcoesImagem(Function(File) onImageSelected) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria de Fotos'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _escolherImagem(ImageSource.gallery, onImageSelected);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Câmara'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _escolherImagem(ImageSource.camera, onImageSelected);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _mostrarDialogoFormularioProduto({Produto? produtoExistente}) {
-    bool isEditing = produtoExistente != null;
-    String tituloDialogo =
+    final bool isEditing = produtoExistente != null;
+    final String tituloDialogo =
         isEditing
             ? 'Editar Produto no Stock'
             : 'Adicionar Novo Produto ao Stock';
     bool isDialogLoading = false;
 
-    // Inicializa o tipo de produto selecionado para o diálogo
+    // Resetar estado do formulário/dialogo
+    _imagemSelecionada = null;
+    _urlImagemExistente = null;
+    _formKey.currentState?.reset();
+
     if (isEditing) {
+      _nomeController.text = produtoExistente.nome;
+      _descricaoController.text = produtoExistente.descricao;
+      _quantidadeController.text =
+          produtoExistente.quantidadeEmStock.toString();
       _tipoProdutoSelecionadoDialogo = produtoExistente.tipoProduto;
+      _urlImagemExistente = produtoExistente.imageUrl;
     } else {
-      _tipoProdutoSelecionadoDialogo = null; // Começa nulo para novo produto
+      _nomeController.clear();
+      _descricaoController.clear();
+      _quantidadeController.text = '0';
+      _tipoProdutoSelecionadoDialogo = null;
     }
 
     if (_currentVendedorId == null) {
@@ -71,39 +145,84 @@ class _StockPageState extends State<StockPage> {
       return;
     }
 
-    if (isEditing) {
-      _nomeController.text = produtoExistente.nome;
-      _descricaoController.text = produtoExistente.descricao;
-      _quantidadeController.text =
-          produtoExistente.quantidadeEmStock.toString();
-      // _tipoProdutoSelecionadoDialogo já foi definido acima
-    } else {
-      _nomeController.clear();
-      _descricaoController.clear();
-      _quantidadeController.text = '0';
-      // _tipoProdutoSelecionadoDialogo começa como null
-    }
-
     showDialog(
       context: context,
       barrierDismissible: !isDialogLoading,
       builder: (BuildContext context) {
-        // StatefulBuilder para gerir o estado do Dropdown e do loading DENTRO do diálogo
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
+            void setImagemDialogo(File imagem) {
+              setDialogState(() {
+                _imagemSelecionada = imagem;
+                _urlImagemExistente =
+                    null; // Prioriza a nova imagem sobre a antiga
+              });
+            }
+
             return AlertDialog(
-              title: Text(
-                tituloDialogo,
-                style: TextStyle(
-                  color: Theme.of(dialogContext).colorScheme.primary,
-                ),
-              ),
+              title: Text(tituloDialogo),
               content: SingleChildScrollView(
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      // --- SECÇÃO DE UPLOAD DE IMAGEM ---
+                      Text(
+                        "Imagem do Produto (Opcional)",
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap:
+                            isDialogLoading
+                                ? null
+                                : () => _mostrarOpcoesImagem(setImagemDialogo),
+                        child: Container(
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8.0),
+                            image:
+                                _imagemSelecionada != null
+                                    ? DecorationImage(
+                                      image: FileImage(_imagemSelecionada!),
+                                      fit: BoxFit.cover,
+                                    )
+                                    : (_urlImagemExistente != null &&
+                                        _urlImagemExistente!.isNotEmpty)
+                                    ? DecorationImage(
+                                      image: NetworkImage(_urlImagemExistente!),
+                                      fit: BoxFit.cover,
+                                    )
+                                    : null,
+                          ),
+                          child:
+                              (_imagemSelecionada == null &&
+                                      (_urlImagemExistente == null ||
+                                          _urlImagemExistente!.isEmpty))
+                                  ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.add_a_photo_outlined,
+                                          size: 40,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text('Carregar Imagem'),
+                                      ],
+                                    ),
+                                  )
+                                  : null,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
                       TextFormField(
                         controller: _nomeController,
                         enabled: !isDialogLoading,
@@ -112,17 +231,15 @@ class _StockPageState extends State<StockPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          prefixIcon: Icon(Icons.shopping_bag_outlined),
+                          prefixIcon: const Icon(Icons.shopping_bag_outlined),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Por favor, insira o nome do produto.';
-                          }
-                          return null;
-                        },
+                        validator:
+                            (value) =>
+                                (value == null || value.trim().isEmpty)
+                                    ? 'Por favor, insira o nome.'
+                                    : null,
                       ),
                       const SizedBox(height: 16),
-                      // Dropdown para Tipo de Produto
                       DropdownButtonFormField<TipoProdutoAgricola>(
                         value: _tipoProdutoSelecionadoDialogo,
                         isExpanded: true,
@@ -131,33 +248,33 @@ class _StockPageState extends State<StockPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          prefixIcon: Icon(Icons.eco_outlined),
+                          prefixIcon: const Icon(Icons.eco_outlined),
                         ),
                         hint: const Text('Selecione o tipo'),
                         items:
-                            TipoProdutoAgricola.values.map((
-                              TipoProdutoAgricola tipo,
-                            ) {
-                              return DropdownMenuItem<TipoProdutoAgricola>(
-                                value: tipo,
-                                child: Text(
-                                  tipoProdutoAgricolaParaStringForUser(tipo),
-                                ),
-                              );
-                            }).toList(),
+                            TipoProdutoAgricola.values
+                                .map(
+                                  (tipo) => DropdownMenuItem(
+                                    value: tipo,
+                                    child: Text(
+                                      tipoProdutoAgricolaParaStringForUser(
+                                        tipo,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                         onChanged:
                             isDialogLoading
                                 ? null
-                                : (TipoProdutoAgricola? newValue) {
-                                  setDialogState(() {
-                                    // Usa o setDialogState do StatefulBuilder
-                                    _tipoProdutoSelecionadoDialogo = newValue;
-                                  });
-                                },
+                                : (newValue) => setDialogState(
+                                  () =>
+                                      _tipoProdutoSelecionadoDialogo = newValue,
+                                ),
                         validator:
                             (value) =>
                                 value == null
-                                    ? 'Selecione um tipo de produto'
+                                    ? 'Selecione um tipo de produto.'
                                     : null,
                       ),
                       const SizedBox(height: 16),
@@ -169,7 +286,7 @@ class _StockPageState extends State<StockPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          prefixIcon: Icon(Icons.description_outlined),
+                          prefixIcon: const Icon(Icons.description_outlined),
                         ),
                         maxLines: 2,
                       ),
@@ -182,20 +299,16 @@ class _StockPageState extends State<StockPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
-                          prefixIcon: Icon(Icons.inventory_2_outlined),
+                          prefixIcon: const Icon(Icons.inventory_2_outlined),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Por favor, insira a quantidade.';
-                          }
-                          final int? quantidade = int.tryParse(value);
-                          if (quantidade == null) {
-                            return 'Por favor, insira um número inteiro válido.';
-                          }
-                          if (quantidade < 0) {
+                          if (value == null || value.trim().isEmpty)
+                            return 'Insira a quantidade.';
+                          if (int.tryParse(value) == null)
+                            return 'Insira um número válido.';
+                          if (int.parse(value) < 0)
                             return 'A quantidade não pode ser negativa.';
-                          }
                           return null;
                         },
                       ),
@@ -209,59 +322,50 @@ class _StockPageState extends State<StockPage> {
                       isDialogLoading
                           ? null
                           : () => Navigator.of(dialogContext).pop(),
-                  child: Text(
-                    'Cancelar',
-                    style: TextStyle(
-                      color: Theme.of(dialogContext).colorScheme.secondary,
-                    ),
-                  ),
+                  child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Theme.of(dialogContext).colorScheme.primary,
-                    foregroundColor:
-                        Theme.of(dialogContext).colorScheme.onPrimary,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   ),
                   onPressed:
                       isDialogLoading
                           ? null
                           : () async {
                             if (_formKey.currentState!.validate()) {
-                              // Validação extra para o tipo de produto selecionado
-                              if (_tipoProdutoSelecionadoDialogo == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Por favor, selecione um tipo de produto.',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
                               setDialogState(() => isDialogLoading = true);
-
-                              final nome = _nomeController.text.trim();
-                              final descricao =
-                                  _descricaoController.text.trim();
-                              final quantidade = int.parse(
-                                _quantidadeController.text,
-                              );
-                              const double precoPadrao = 0.0;
-
                               try {
+                                String? finalImageUrl = _urlImagemExistente;
+
+                                if (_imagemSelecionada != null) {
+                                  if (isEditing &&
+                                      _urlImagemExistente != null &&
+                                      _urlImagemExistente!.isNotEmpty) {
+                                    await _storageService.removerImagem(
+                                      _urlImagemExistente!,
+                                    );
+                                  }
+                                  finalImageUrl = await _storageService
+                                      .uploadImagemProduto(
+                                        ficheiro: _imagemSelecionada!,
+                                        idVendedor: _currentVendedorId!,
+                                      );
+                                }
+
                                 if (isEditing) {
                                   Produto produtoAtualizado = Produto(
                                     id: produtoExistente.id,
-                                    nome: nome,
-                                    descricao: descricao,
+                                    nome: _nomeController.text.trim(),
+                                    descricao: _descricaoController.text.trim(),
                                     preco: produtoExistente.preco,
                                     idVendedor: produtoExistente.idVendedor,
-                                    quantidadeEmStock: quantidade,
+                                    quantidadeEmStock: int.parse(
+                                      _quantidadeController.text.trim(),
+                                    ),
                                     tipoProduto:
-                                        _tipoProdutoSelecionadoDialogo!, // Usa o tipo selecionado
+                                        _tipoProdutoSelecionadoDialogo!,
+                                    imageUrl: finalImageUrl,
                                   );
                                   await _produtoService
                                       .atualizarProdutoCompleto(
@@ -270,25 +374,26 @@ class _StockPageState extends State<StockPage> {
                                 } else {
                                   Produto novoProduto = Produto(
                                     id: '',
-                                    nome: nome,
-                                    descricao: descricao,
-                                    preco: precoPadrao,
+                                    nome: _nomeController.text.trim(),
+                                    descricao: _descricaoController.text.trim(),
+                                    preco: 0.0,
                                     idVendedor: _currentVendedorId!,
-                                    quantidadeEmStock: quantidade,
+                                    quantidadeEmStock: int.parse(
+                                      _quantidadeController.text.trim(),
+                                    ),
                                     tipoProduto:
-                                        _tipoProdutoSelecionadoDialogo!, // Usa o tipo selecionado
+                                        _tipoProdutoSelecionadoDialogo!,
+                                    imageUrl: finalImageUrl,
                                   );
                                   await _produtoService
                                       .adicionarProdutoComStock(novoProduto);
                                 }
                                 if (mounted) {
-                                  // ignore: use_build_context_synchronously
                                   Navigator.of(dialogContext).pop();
-                                  // ignore: use_build_context_synchronously
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Produto de stock ${isEditing ? "atualizado" : "adicionado"} com sucesso!',
+                                        'Produto ${isEditing ? "atualizado" : "adicionado"} com sucesso!',
                                       ),
                                       backgroundColor: Colors.green,
                                     ),
@@ -296,7 +401,6 @@ class _StockPageState extends State<StockPage> {
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  // ignore: use_build_context_synchronously
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Erro: ${e.toString()}'),
@@ -313,21 +417,15 @@ class _StockPageState extends State<StockPage> {
                           },
                   child:
                       isDialogLoading
-                          ? SizedBox(
+                          ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.0,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(dialogContext).colorScheme.onPrimary,
-                              ),
+                              color: Colors.white,
                             ),
                           )
-                          : Text(
-                            isEditing
-                                ? 'Guardar Alterações'
-                                : 'Adicionar Produto',
-                          ),
+                          : Text(isEditing ? 'Guardar' : 'Adicionar'),
                 ),
               ],
             );
@@ -338,7 +436,6 @@ class _StockPageState extends State<StockPage> {
   }
 
   void _confirmarApagarProduto(Produto produto) {
-    // ... (código existente para apagar, não precisa de alterações para 'tipoProduto')
     bool isDialogLoading = false;
     showDialog(
       context: context,
@@ -352,7 +449,7 @@ class _StockPageState extends State<StockPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               content: Text(
-                'Tem a certeza que deseja remover o produto "${produto.nome}" do seu stock? (Esta ação não pode ser desfeita e pode afetar ofertas de venda associadas a este produto base).',
+                'Tem a certeza que deseja remover o produto "${produto.nome}"? Esta ação também irá apagar a imagem associada.',
               ),
               actions: <Widget>[
                 TextButton(
@@ -373,17 +470,23 @@ class _StockPageState extends State<StockPage> {
                           : () async {
                             setDialogState(() => isDialogLoading = true);
                             try {
+                              // Primeiro apaga a imagem do Storage, se existir
+                              if (produto.imageUrl != null &&
+                                  produto.imageUrl!.isNotEmpty) {
+                                await _storageService.removerImagem(
+                                  produto.imageUrl!,
+                                );
+                              }
+                              // Depois apaga o registo do Firestore
                               await _produtoService.removerProdutoDoStock(
                                 produto.id,
                               );
                               if (mounted) {
-                                // ignore: use_build_context_synchronously
                                 Navigator.of(context).pop();
-                                // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Produto "${produto.nome}" removido do stock.',
+                                      'Produto "${produto.nome}" removido.',
                                     ),
                                     backgroundColor: Colors.orange,
                                   ),
@@ -391,7 +494,6 @@ class _StockPageState extends State<StockPage> {
                               }
                             } catch (e) {
                               if (mounted) {
-                                // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -409,14 +511,12 @@ class _StockPageState extends State<StockPage> {
                           },
                   child:
                       isDialogLoading
-                          ? SizedBox(
+                          ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.0,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).colorScheme.onError,
-                              ),
+                              color: Colors.white,
                             ),
                           )
                           : const Text('Remover'),
@@ -431,22 +531,10 @@ class _StockPageState extends State<StockPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ... (build inicial com verificações de _isLoadingPageData e _currentVendedorId como antes) ...
     if (_isLoadingPageData) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Meu Stock de Produtos',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor:
-              Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(
-            key: Key("stock_page_loading_indicator"),
-          ),
-        ),
+        appBar: AppBar(title: const Text('Meu Stock de Produtos')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -468,9 +556,7 @@ class _StockPageState extends State<StockPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () async {
-                    await _authService.signOut();
-                  },
+                  onPressed: () async => await _authService.signOut(),
                   child: const Text('Ir para Login'),
                 ),
               ],
@@ -481,14 +567,7 @@ class _StockPageState extends State<StockPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Meu Stock de Produtos',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-        elevation: 2,
-      ),
+      appBar: AppBar(title: const Text('Meu Stock de Produtos'), elevation: 2),
       body: StreamBuilder<List<Produto>>(
         stream: _produtoService.obterProdutosDoVendedor(_currentVendedorId!),
         builder: (context, snapshot) {
@@ -498,32 +577,27 @@ class _StockPageState extends State<StockPage> {
             );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                key: Key("stock_list_loading_indicator"),
-              ),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.inventory_2_outlined,
                     size: 80,
-                    color: Colors.grey[400],
+                    color: Colors.grey,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   Text(
-                    'Ainda não tem produtos no seu stock.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    'Ainda não tem produtos no stock.',
+                    style: TextStyle(fontSize: 18),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
-                    'Clique no botão "+" para adicionar um produto ao stock.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
+                    'Clique no botão "+" para adicionar.',
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
@@ -546,106 +620,82 @@ class _StockPageState extends State<StockPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                      child: Icon(
-                        Icons
-                            .eco_outlined, // Ícone pode ser dinâmico com base no tipoProduto
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    title: Text(
-                      produto.nome,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Exibir o tipo de produto
-                          Text(
-                            'Tipo: ${tipoProdutoAgricolaParaStringForUser(produto.tipoProduto)}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          Text(
-                            'Stock Atual: ${produto.quantidadeEmStock} unidades',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.tertiary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (produto.descricao.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                'Descrição: ${produto.descricao}',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  color: Colors.grey[600],
-                                ),
-                                maxLines: 1, // Reduzido para dar espaço ao tipo
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    trailing: PopupMenuButton<MenuAcaoStock>(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                      ),
-                      onSelected: (MenuAcaoStock acao) {
-                        if (acao == MenuAcaoStock.editar) {
-                          _mostrarDialogoFormularioProduto(
-                            produtoExistente: produto,
-                          );
-                        } else if (acao == MenuAcaoStock.apagar) {
-                          _confirmarApagarProduto(produto);
-                        }
-                      },
-                      itemBuilder:
-                          (BuildContext context) =>
-                              <PopupMenuEntry<MenuAcaoStock>>[
-                                const PopupMenuItem<MenuAcaoStock>(
-                                  value: MenuAcaoStock.editar,
-                                  child: ListTile(
-                                    leading: Icon(Icons.edit_note_outlined),
-                                    title: Text('Editar'),
-                                  ),
-                                ),
-                                const PopupMenuItem<MenuAcaoStock>(
-                                  value: MenuAcaoStock.apagar,
-                                  child: ListTile(
-                                    leading: Icon(Icons.delete_sweep_outlined),
-                                    title: Text('Remover'),
-                                  ),
-                                ),
-                              ],
-                    ),
-                    isThreeLine:
-                        true, // Pode precisar ajustar com base no conteúdo
-                    onTap:
-                        () => _mostrarDialogoFormularioProduto(
-                          produtoExistente: produto,
-                        ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
                   ),
+                  leading: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage:
+                        (produto.imageUrl != null &&
+                                produto.imageUrl!.isNotEmpty)
+                            ? NetworkImage(produto.imageUrl!)
+                            : null,
+                    child:
+                        (produto.imageUrl == null || produto.imageUrl!.isEmpty)
+                            ? const Icon(Icons.eco_outlined, color: Colors.grey)
+                            : null,
+                  ),
+                  title: Text(
+                    produto.nome,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tipo: ${tipoProdutoAgricolaParaStringForUser(produto.tipoProduto)}',
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        'Stock: ${produto.quantidadeEmStock} unidades',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  trailing: PopupMenuButton<MenuAcaoStock>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (MenuAcaoStock acao) {
+                      if (acao == MenuAcaoStock.editar) {
+                        _mostrarDialogoFormularioProduto(
+                          produtoExistente: produto,
+                        );
+                      } else if (acao == MenuAcaoStock.apagar) {
+                        _confirmarApagarProduto(produto);
+                      }
+                    },
+                    itemBuilder:
+                        (BuildContext context) =>
+                            <PopupMenuEntry<MenuAcaoStock>>[
+                              const PopupMenuItem<MenuAcaoStock>(
+                                value: MenuAcaoStock.editar,
+                                child: ListTile(
+                                  leading: Icon(Icons.edit_note_outlined),
+                                  title: Text('Editar'),
+                                ),
+                              ),
+                              const PopupMenuItem<MenuAcaoStock>(
+                                value: MenuAcaoStock.apagar,
+                                child: ListTile(
+                                  leading: Icon(Icons.delete_sweep_outlined),
+                                  title: Text('Remover'),
+                                ),
+                              ),
+                            ],
+                  ),
+                  isThreeLine: true,
+                  onTap:
+                      () => _mostrarDialogoFormularioProduto(
+                        produtoExistente: produto,
+                      ),
                 ),
               );
             },
@@ -653,24 +703,9 @@ class _StockPageState extends State<StockPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          if (_currentVendedorId != null) {
-            _mostrarDialogoFormularioProduto();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Não é possível adicionar produto: Vendedor não identificado.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
+        onPressed: () => _mostrarDialogoFormularioProduto(),
         icon: const Icon(Icons.add_circle_outline_rounded),
         label: const Text('Novo Produto'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
     );
   }

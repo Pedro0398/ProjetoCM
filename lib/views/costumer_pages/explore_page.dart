@@ -1,14 +1,11 @@
+// ficheiro: lib/views/explore_page.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Para User
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/data_class/auth_service.dart';
 import 'package:flutter_application_1/data_class/cart_service.dart';
 import 'package:flutter_application_1/data_class/firebase_offer.dart';
 import 'package:flutter_application_1/data_class/offer.dart';
 import 'package:flutter_application_1/data_class/product.dart';
-import 'package:flutter_application_1/views/costumer_pages/cart_page.dart';
-import 'package:flutter_application_1/views/widgets/navbar_widget.dart';
-
-// Importar CarrinhoService
 
 class ExplorePage extends StatefulWidget {
   const ExplorePage({super.key});
@@ -19,9 +16,8 @@ class ExplorePage extends StatefulWidget {
 
 class _ExplorarOfertasPageState extends State<ExplorePage> {
   final OfertaProdutoService _ofertaService = OfertaProdutoService();
-  final CarrinhoService _carrinhoService =
-      CarrinhoService(); // Instância do CarrinhoService
-  final AuthService _authService = AuthService(); // Instância do AuthService
+  final CarrinhoService _carrinhoService = CarrinhoService();
+  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
 
   User? _currentUser;
@@ -31,22 +27,18 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
   TipoProdutoAgricola? _filtroTipoSelecionado;
   RangeValues? _filtroFaixaPreco;
   List<OfertaProduto> _ofertasDestaque = [];
-
-  // Mapa para controlar o estado de carregamento de cada botão "Adicionar"
   final Map<String, bool> _isAddingToCart = {};
 
   @override
   void initState() {
     super.initState();
-    _carregarDadosUtilizador(); // Carrega dados do utilizador
+    _carregarDadosUtilizador();
     _searchController.addListener(() {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted && _searchController.text != _termoPesquisaAtual) {
-          setState(() {
-            _termoPesquisaAtual = _searchController.text;
-          });
-        }
-      });
+      if (mounted && _searchController.text != _termoPesquisaAtual) {
+        setState(() {
+          _termoPesquisaAtual = _searchController.text;
+        });
+      }
     });
     _carregarDestaquesIniciais();
   }
@@ -56,8 +48,6 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
     if (_currentUser != null) {
       _currentUserId = _currentUser!.uid;
     }
-    // Não precisa de setState aqui se a UI principal não depender disto imediatamente
-    // ou se for apenas para as ações dos botões.
   }
 
   Future<void> _carregarDestaquesIniciais() async {
@@ -77,7 +67,6 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
   }
 
   void _abrirDialogoFiltros() {
-    // ... (código do diálogo de filtros permanece o mesmo) ...
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -117,19 +106,17 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                           value: null,
                           child: Text('Todos os Tipos'),
                         ),
-                        ...TipoProdutoAgricola.values.map((
-                          TipoProdutoAgricola tipo,
-                        ) {
+                        ...TipoProdutoAgricola.values.map((tipo) {
                           return DropdownMenuItem<TipoProdutoAgricola>(
                             value: tipo,
-                            child: Text(tipoProdutoAgricolaParaStringForUser(tipo)),
+                            child: Text(
+                              tipoProdutoAgricolaParaStringForUser(tipo),
+                            ),
                           );
                         }),
                       ],
-                      onChanged: (TipoProdutoAgricola? novoValor) {
-                        setModalState(() {
-                          _filtroTipoSelecionado = novoValor;
-                        });
+                      onChanged: (novoValor) {
+                        setModalState(() => _filtroTipoSelecionado = novoValor);
                       },
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
@@ -154,10 +141,8 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                                 '${_filtroFaixaPreco!.end.round()}€',
                               )
                               : null,
-                      onChanged: (RangeValues values) {
-                        setModalState(() {
-                          _filtroFaixaPreco = values;
-                        });
+                      onChanged: (values) {
+                        setModalState(() => _filtroFaixaPreco = values);
                       },
                     ),
                     Text(
@@ -176,18 +161,14 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                               _filtroTipoSelecionado = null;
                               _filtroFaixaPreco = null;
                             });
-                            if (mounted) {
-                              setState(() {});
-                            }
+                            if (mounted) setState(() {});
                           },
                           child: const Text('Limpar Filtros'),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () {
-                            if (mounted) {
-                              setState(() {});
-                            }
+                            if (mounted) setState(() {});
                             Navigator.pop(context);
                           },
                           child: const Text('Aplicar'),
@@ -212,19 +193,11 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
           backgroundColor: Colors.orange,
         ),
       );
-      // TODO: Opcionalmente, navegar para a página de login
-      // Navigator.of(context).push(MaterialPageRoute(builder: (_) => LoginPage()));
       return;
     }
-
-    if ((_isAddingToCart[oferta.id] ?? false)) return; // Já está a adicionar
-
-    setState(() {
-      _isAddingToCart[oferta.id] = true;
-    });
-
+    if ((_isAddingToCart[oferta.id] ?? false)) return;
+    setState(() => _isAddingToCart[oferta.id] = true);
     try {
-      // Adiciona 1 unidade da oferta por defeito
       await _carrinhoService.adicionarItemAoCarrinho(
         _currentUserId!,
         oferta,
@@ -251,13 +224,12 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isAddingToCart[oferta.id] = false;
-        });
+        setState(() => _isAddingToCart[oferta.id] = false);
       }
     }
   }
 
+  // MÉTODO ATUALIZADO PARA MOSTRAR A IMAGEM
   Widget _buildOfertaCard(BuildContext context, OfertaProduto oferta) {
     final bool isCurrentlyAdding = _isAddingToCart[oferta.id] ?? false;
     final bool isEsgotado =
@@ -267,124 +239,116 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      clipBehavior: Clip.antiAlias, // Corta a imagem para as bordas do cartão
       child: InkWell(
         onTap: () {
-          // TODO: Navegar para a página de detalhes da oferta/produto
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Clicou em: ${oferta.tituloAnuncio}')),
-          );
+          // TODO: Navegar para a página de detalhes da oferta
         },
-        borderRadius: BorderRadius.circular(10.0),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // TODO: Adicionar Imagem
-                  Text(
-                    oferta.tituloAnuncio,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  if (oferta.tipoProdutoAnuncio != null &&
-                      oferta.tipoProdutoAnuncio!.isNotEmpty)
-                    Chip(
-                      label: Text(
-                        oferta.tipoProdutoAnuncio!,
-                        style: TextStyle(fontSize: 10),
-                      ),
-                      backgroundColor: Theme.of(
-                        context,
-                        // ignore: deprecated_member_use
-                      ).colorScheme.secondaryContainer.withOpacity(0.7),
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                      labelPadding: EdgeInsets.symmetric(horizontal: 4),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${oferta.precoSugerido.toStringAsFixed(2)} €',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Disponível: ${oferta.quantidadeDisponivelNestaOferta}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isEsgotado ? Colors.red : Colors.grey[700],
-                    ),
-                  ),
-                  if (oferta.descricaoAnuncio.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        oferta.descricaoAnuncio,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[700],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child:
-                    isEsgotado
-                        ? Chip(
-                          label: Text(
-                            'Esgotado',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          backgroundColor: Colors.red.shade400,
-                        )
-                        : FilledButton.tonalIcon(
-                          icon:
-                              isCurrentlyAdding
-                                  ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondaryContainer,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- SECÇÃO DA IMAGEM ---
+            Container(
+              height: 120,
+              width: double.infinity,
+              color: Colors.grey[200],
+              child:
+                  (oferta.imageUrl != null && oferta.imageUrl!.isNotEmpty)
+                      ? Image.network(
+                        oferta.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder:
+                            (context, child, progress) =>
+                                progress == null
+                                    ? child
+                                    : const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
-                                  )
-                                  : const Icon(
-                                    Icons.add_shopping_cart_outlined,
-                                    size: 18,
-                                  ),
-                          label: const Text('Adicionar'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                        errorBuilder:
+                            (context, error, stack) => const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                              size: 40,
                             ),
-                            textStyle: const TextStyle(fontSize: 13),
-                          ),
-                          onPressed:
-                              isCurrentlyAdding
-                                  ? null
-                                  : () => _adicionarOfertaAoCarrinho(oferta),
+                      )
+                      : const Center(
+                        child: Icon(
+                          Icons.eco_outlined,
+                          color: Colors.grey,
+                          size: 40,
                         ),
+                      ),
+            ),
+
+            // --- CONTEÚDO DO CARTÃO ---
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12.0, 8.0, 12.0, 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          oferta.tituloAnuncio,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${oferta.precoSugerido.toStringAsFixed(2)} €',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Disponível: ${oferta.quantidadeDisponivelNestaOferta}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child:
+                          isEsgotado
+                              ? const Chip(label: Text('Esgotado'))
+                              : FilledButton.tonalIcon(
+                                icon:
+                                    isCurrentlyAdding
+                                        ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                        : const Icon(
+                                          Icons.add_shopping_cart_outlined,
+                                          size: 18,
+                                        ),
+                                label: const Text('Adicionar'),
+                                onPressed:
+                                    isCurrentlyAdding
+                                        ? null
+                                        : () =>
+                                            _adicionarOfertaAoCarrinho(oferta),
+                              ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -392,7 +356,6 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
 
   @override
   Widget build(BuildContext context) {
-    // ... (o resto do método build como antes, incluindo a barra de pesquisa, destaques e StreamBuilder/GridView)
     return Scaffold(
       appBar: AppBar(
         title: const Text('Explorar Produtos Agrícolas'),
@@ -422,10 +385,7 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Theme.of(
-                    context,
-                    // ignore: deprecated_member_use
-                  ).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
                   contentPadding: const EdgeInsets.symmetric(
                     vertical: 0,
                     horizontal: 16,
@@ -448,15 +408,14 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                 ),
               ),
               SizedBox(
-                height:
-                    280, // Altura ajustada para o card com mais info e botão
+                height: 320, // Altura ajustada para o novo card com imagem
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   itemCount: _ofertasDestaque.length,
                   itemBuilder: (context, index) {
                     return SizedBox(
-                      width: 200, // Largura ajustada
+                      width: 210, // Largura ajustada
                       child: _buildOfertaCard(context, _ofertasDestaque[index]),
                     );
                   },
@@ -483,45 +442,25 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                 termoPesquisa: _termoPesquisaAtual,
               ),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text('Erro: ${snapshot.error}'),
-                    ),
-                  );
-                }
+                if (snapshot.hasError)
+                  return Center(child: Text('Erro: ${snapshot.error}'));
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !(snapshot.hasData && snapshot.data!.isNotEmpty)) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                if (!snapshot.hasData ||
-                    snapshot.data!.isEmpty &&
-                        _termoPesquisaAtual == null &&
-                        _filtroTipoSelecionado == null &&
-                        _filtroFaixaPreco == null) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('Nenhuma oferta disponível no momento.'),
-                    ),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 List<OfertaProduto> ofertas = snapshot.data ?? [];
 
+                // Filtragem no lado do cliente
                 if (_filtroTipoSelecionado != null) {
                   ofertas =
                       ofertas
                           .where(
                             (o) =>
                                 o.tipoProdutoAnuncio ==
-                                _filtroTipoSelecionado!.name,
+                                tipoProdutoAgricolaParaString(
+                                  _filtroTipoSelecionado!,
+                                ),
                           )
                           .toList();
                 }
@@ -536,17 +475,15 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                           .toList();
                 }
 
-                if (ofertas.isEmpty) {
+                if (ofertas.isEmpty)
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16),
-                      child: Text(
-                        'Nenhuma oferta encontrada com os filtros aplicados.',
-                      ),
+                      child: Text('Nenhuma oferta encontrada.'),
                     ),
                   );
-                }
 
+                // GRIDVIEW ATUALIZADO
                 return GridView.builder(
                   padding: const EdgeInsets.all(12.0),
                   shrinkWrap: true,
@@ -556,7 +493,7 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
                     crossAxisSpacing: 10.0,
                     mainAxisSpacing: 10.0,
                     childAspectRatio:
-                        0.58, // Ajustado para mais conteúdo no card
+                        0.65, // Rácio ajustado para o card mais alto
                   ),
                   itemCount: ofertas.length,
                   itemBuilder: (context, index) {
@@ -568,7 +505,6 @@ class _ExplorarOfertasPageState extends State<ExplorePage> {
           ],
         ),
       ),
-      //bottomNavigationBar: const NavBar(),
     );
   }
 }

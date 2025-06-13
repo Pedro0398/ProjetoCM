@@ -1,53 +1,71 @@
-// Em: lib/services/storage_service.dart
-import 'dart:io'; // Para o tipo File
+// ficheiro: lib/data_class/storage_service.dart
+import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:uuid/uuid.dart'; // Para gerar nomes de ficheiro únicos
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p; // <-- LINHA QUE FALTAVA
 
 class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final Uuid _uuid = Uuid(); // Para gerar nomes de ficheiro únicos
 
-  // Faz upload de uma imagem para o Firebase Storage e retorna a URL de download
-  // O 'pathPrefix' pode ser algo como 'imagens_produtos/' ou 'imagens_ofertas/'
-  Future<String?> uploadImage({
-    required File imageFile,
-    required String pathPrefix, // Ex: "produtos_imagens/"
-    String? existingFileName, // Para substituir uma imagem existente (opcional)
+  /// Faz o upload de um ficheiro de imagem para o Firebase Storage.
+  /// Retorna o URL de download da imagem.
+  Future<String> uploadImagemProduto({
+    required File ficheiro,
+    required String idVendedor,
   }) async {
     try {
-      // Gera um nome de ficheiro único se não estiver a substituir um existente
-      String fileName =
-          existingFileName ??
-          '${_uuid.v4()}-${DateTime.now().millisecondsSinceEpoch}.jpg';
-      String filePath = '$pathPrefix$fileName';
-
-      // Cria a referência para o local onde a imagem será guardada
-      Reference ref = _storage.ref().child(filePath);
+      // Cria um nome de ficheiro único para evitar colisões
+      // A função p.extname() agora será reconhecida
+      String nomeFicheiro =
+          '${DateTime.now().millisecondsSinceEpoch}${p.extension(ficheiro.path)}';
+      // Cria uma referência para o caminho no Storage onde a imagem será guardada
+      Reference ref = _storage.ref().child(
+        'imagens_produtos/$idVendedor/$nomeFicheiro',
+      );
 
       // Faz o upload do ficheiro
-      UploadTask uploadTask = ref.putFile(imageFile);
+      UploadTask uploadTask = ref.putFile(
+        ficheiro,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
-      // Espera o upload ser concluído
+      // Aguarda a conclusão do upload
       TaskSnapshot snapshot = await uploadTask;
 
-      // Obtém a URL de download da imagem
+      // Obtém e retorna o URL de download
       String downloadUrl = await snapshot.ref.getDownloadURL();
+
       return downloadUrl;
+    } on FirebaseException catch (e) {
+      if (kDebugMode) {
+        print("Erro no upload da imagem (Firebase): ${e.message}");
+      }
+      throw Exception(
+        "Falha ao carregar a imagem. Verifique a sua conexão e permissões.",
+      );
     } catch (e) {
-      // Poderia lançar uma exceção mais específica ou retornar null
-      // dependendo de como quer tratar o erro na UI
-      return null;
+      if (kDebugMode) {
+        print("Erro desconhecido no upload da imagem: $e");
+      }
+      throw Exception("Ocorreu um erro inesperado ao carregar a imagem.");
     }
   }
 
-  // Apagar uma imagem do Storage (útil se o produto/oferta for apagado)
-  Future<void> deleteImage(String imageUrl) async {
-    if (imageUrl.isEmpty) return;
+  /// Remove uma imagem do Storage usando o seu URL de download.
+  Future<void> removerImagem(String urlImagem) async {
+    // Ignora se o URL estiver vazio
+    if (urlImagem.isEmpty) return;
+
     try {
-      Reference ref = _storage.refFromURL(imageUrl);
+      // Converte o URL de volta para uma referência do Storage
+      Reference ref = _storage.refFromURL(urlImagem);
       await ref.delete();
     } catch (e) {
-      // Lide com o erro, por exemplo, se o ficheiro não existir mais.
+      // É comum ocorrer um erro se o ficheiro já foi apagado ou o URL é inválido.
+      // Para a app, podemos simplesmente registar o erro e continuar.
+      if (kDebugMode) {
+        print("Info: Erro ao remover imagem antiga (pode ser ignorado): $e");
+      }
     }
   }
 }
