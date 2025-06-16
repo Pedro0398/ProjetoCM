@@ -81,6 +81,23 @@ class ProdutoService {
     }
   }
 
+  Future<int> contarProdutosDoVendedorFirestore(String idVendedor) async {
+  try {
+      final snapshot = await _firestore
+          .collection(_collectionName)
+          .where('idVendedor', isEqualTo: idVendedor)
+          .get();
+
+      return snapshot.size;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erro ao contar produtos Firestore: $e');
+      }
+      rethrow;
+    }
+  }
+
+
   // Método de teste manual atualizado para incluir tipoProduto
   Future<void> criarProdutoDeTesteManual(String idVendedorParaTeste) async {
     Produto produtoTeste1 = Produto(

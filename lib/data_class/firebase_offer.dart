@@ -263,6 +263,35 @@ class OfertaProdutoService {
     }
   }
 
+  Future<int> obterNumeroOfertasVendidasDoVendedor(String idVendedor) async {
+  try {
+    QuerySnapshot snapshot = await _firestore
+        .collection(_collectionName)
+        .where('idVendedor', isEqualTo: idVendedor)
+        .where('estadoAnuncio', isEqualTo: 'Vendido')
+        .get();
+
+    return snapshot.docs.length;
+  } catch (e) {
+    print('Erro ao obter número de ofertas vendidas: $e');
+    rethrow;
+  }
+  }
+
+ Future<int> obterNumeroAnunciosActivosDoVendedor(String idVendedor) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collectionName)
+          .where('idVendedor', isEqualTo: idVendedor)
+          .where('estadoAnuncio', whereIn: ['Disponível', 'Reservado'])
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Erro ao obter número de anúncios activos do vendedor: $e');
+      rethrow;
+    }
+  }
   Future<void> criarOfertasDeTesteManual(
     String idVendedorTeste,
     String idProdutoGenericoTeste1,
@@ -302,5 +331,6 @@ class OfertaProdutoService {
     );
 
     // ... (pode adicionar mais ofertas de teste) ...
+
   }
 }

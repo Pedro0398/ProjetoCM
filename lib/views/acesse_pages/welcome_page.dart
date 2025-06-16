@@ -11,11 +11,11 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(150), // Define a altura da AppBar
+        preferredSize: const Size.fromHeight(150), // Define a altura da AppBar
         child: AppBar(
           backgroundColor: Colors.transparent, // Torna o fundo transparente
           elevation: 0, // Remove a sombra da AppBar
-          flexibleSpace: HeroWidget(),
+          flexibleSpace: const HeroWidget(),
         ),
       ),
       body: SingleChildScrollView(
@@ -32,44 +32,46 @@ class WelcomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     child: Lottie.asset(
                       'assets/welcome.json',
-                      fit:
-                          BoxFit
-                              .cover, // Aumenta o tamanho da animação dentro do espaço
+                      fit: BoxFit
+                          .cover, // Aumenta o tamanho da animação dentro do espaço
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 90),
-              FittedBox(
+              const SizedBox(height: 90),
+              const FittedBox(
                 child: Text(
                   "Bem-vindo ao MarketPlace da Agricultura",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: const Color.fromARGB(255, 8, 116, 11),
+                    color: Color.fromARGB(255, 8, 116, 11),
                     fontSize: 16,
                   ),
                 ),
               ),
-              SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SignupPage()),
-                  );
-                },
-                style: FilledButton.styleFrom(minimumSize: Size(400, 40.0)),
-                child: Text("Get Started"),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SignupPage()),
+                    );
+                  },
+                  style: FilledButton.styleFrom(minimumSize: const Size(400, 40.0)),
+                  child: const Text("Get Started"),
+                ),
               ),
-              SizedBox(height: 5.0),
+              const SizedBox(height: 5.0),
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => LoginPage()),
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
-                child: Text("Login"),
+                child: const Text("Login"),
               ),
             ],
           ),
