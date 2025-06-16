@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/data_class/offer.dart';
 import 'package:flutter_application_1/data_class/product.dart';
 import 'package:flutter_application_1/data_class/auth_service.dart';
-import 'package:flutter_application_1/data_class/firebase_offer.dart';
 import 'package:flutter_application_1/data_class/firebase_product.dart';
+import 'package:flutter_application_1/data_class/firebase_offer.dart';
 
 enum MenuAcaoOferta { editar, apagar }
 
